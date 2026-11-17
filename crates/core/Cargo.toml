@@ -1,0 +1,11 @@
+[package]
+name = "mcnet-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Coeur de mesure, d'analyse et d'optimisation reseau pour Minecraft 1.8.9 (Windows)"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

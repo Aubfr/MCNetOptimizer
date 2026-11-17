@@ -1,0 +1,76 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Tests automatises
+        run: |
+          set -o pipefail
+          cargo test --workspace 2>&1 | tee test.log
+
+      - name: Clippy (informatif)
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          cargo clippy --workspace --all-targets 2>&1 | tee clippy.log
+
+      - name: Compilation release
+        run: |
+          set -o pipefail
+          cargo build --release --workspace 2>&1 | tee build.log
+
+      - name: Preparation du paquet
+        run: |
+          mkdir dist
+          cp target/release/mcnet-gui.exe dist/MCNetOptimizer.exe
+          cp target/release/mcnet-cli.exe dist/mcnet-cli.exe
+          cp README.md dist/README.md
+
+      - name: Archive ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/* -DestinationPath MCNetOptimizer-windows-x64.zip
+
+      - name: Artefacts (exe + journaux)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MCNetOptimizer-windows-x64
+          path: |
+            MCNetOptimizer-windows-x64.zip
+            dist/*.exe
+            test.log
+            clippy.log
+            build.log
+          if-no-files-found: warn
+
+      - name: Publication dans Releases
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest MCNetOptimizer-windows-x64.zip \
+            --title "MC Net Optimizer (derniere version)" \
+            --notes "Build automatique du commit ${GITHUB_SHA}. Tests passes avant publication." \
+            --prerelease

@@ -1,0 +1,13 @@
+[package]
+name = "mcnet-gui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "mcnet-gui"
+path = "src/main.rs"
+
+[dependencies]
+mcnet-core = { path = "../core" }
+eframe = { version = "=0.27.2", default-features = false, features = ["glow", "default_fonts"] }
